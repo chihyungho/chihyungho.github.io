@@ -1365,15 +1365,8 @@ footer {
   letter-spacing: .1em;
 }
 .convener-name { font-size: 18px; font-weight: 800; color: var(--navy); }
-.timeline-photo {
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 12px;
-  margin: 14px 0 4px;
-  box-shadow: 0 8px 24px rgba(10,22,40,.12);
-}
+/* 顧問團 timeline 輪播：圖片為 16:9，改比例避免裁切 */
+.timeline-advisory .carousel-slide img { aspect-ratio: 16 / 9; }
 .convener.is-office { border-top-color: var(--gold); }
 .convener.is-office .convener-group { background: var(--gold); color: var(--navy); font-weight: 700; }
 
