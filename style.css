@@ -1367,6 +1367,7 @@ footer {
 .convener-name { font-size: 18px; font-weight: 800; color: var(--navy); }
 .timeline-photo {
   width: 100%;
+  max-width: 100%;
   height: auto;
   display: block;
   border-radius: 12px;
