@@ -124,3 +124,19 @@ document.addEventListener("click", function(e) {
     setTimeout(function() { btn.textContent = orig; }, 1800);
   }
 });
+
+// === 進站彈窗 Site Popup ===
+(function() {
+  var popup = document.getElementById("sitePopup");
+  if (!popup) return;
+  function closePopup() { popup.classList.remove("is-open"); }
+  // 進站後稍作延遲再彈出，讓首頁先呈現
+  setTimeout(function() { popup.classList.add("is-open"); }, 500);
+  // 關閉：右上角 ×、點背景、按 ESC
+  popup.addEventListener("click", function(e) {
+    if (e.target.closest("[data-popup-close]")) closePopup();
+  });
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") closePopup();
+  });
+})();
