@@ -1367,6 +1367,8 @@ footer {
 .convener-name { font-size: 18px; font-weight: 800; color: var(--navy); }
 /* 顧問團 timeline 輪播：圖片為 16:9，改比例避免裁切 */
 .timeline-advisory .carousel-slide img { aspect-ratio: 16 / 9; }
+/* 登記參選 timeline 輪播：圖片為 3:2，改比例避免裁切 */
+.timeline-register .carousel-slide img { aspect-ratio: 3 / 2; }
 .convener.is-office { border-top-color: var(--gold); }
 .convener.is-office .convener-group { background: var(--gold); color: var(--navy); font-weight: 700; }
 
