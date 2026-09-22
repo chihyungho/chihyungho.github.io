@@ -1504,3 +1504,22 @@ footer {
   transition: background .2s ease;
 }
 .site-popup-cta:hover { background: var(--royal); }
+
+/* ===== 九大政見圖卡 Policy Gallery ===== */
+.policy-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.policy-card {
+  display: block;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0,0,0,.28);
+  transition: transform .3s ease, box-shadow .3s ease;
+  background: #fff;
+}
+.policy-card:hover { transform: translateY(-5px); box-shadow: 0 20px 46px rgba(0,0,0,.42); }
+.policy-card img { width: 100%; height: auto; display: block; }
+@media (max-width: 860px) { .policy-gallery { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .policy-gallery { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; } }
