@@ -1578,3 +1578,13 @@ footer {
   color: #0a2a52 !important;
 }
 .whitepaper-btn:hover { background: #bcdcff !important; border-color: #bcdcff !important; }
+
+/* ===== 16,800 政見卡：底線跟著完整數字 ===== */
+.policy-feature.is-money .policy-feature-num {
+  display: inline-block;
+  border-bottom: 5px solid var(--accent);
+  padding-bottom: 12px;
+  margin-bottom: 6px;
+  line-height: 1.05;
+}
+.policy-feature.is-money .policy-feature-title::before { display: none; }
