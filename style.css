@@ -1570,3 +1570,11 @@ footer {
   .policy-feature:nth-child(even) .policy-feature-img { order: 0; }
   .policy-feature-num { font-size: 50px; }
 }
+
+/* ===== 白皮書按鈕（淡藍底） ===== */
+.whitepaper-btn {
+  background: #d4e8ff !important;
+  border: 1px solid #d4e8ff !important;
+  color: #0a2a52 !important;
+}
+.whitepaper-btn:hover { background: #bcdcff !important; border-color: #bcdcff !important; }
