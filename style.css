@@ -1588,3 +1588,11 @@ footer {
   line-height: 1.05;
 }
 .policy-feature.is-money .policy-feature-title::before { display: none; }
+
+/* ===== 智慧巨蛋按鈕（實心亮藍） ===== */
+.dome-btn {
+  background: #2b7fd4 !important;
+  border: 1px solid #2b7fd4 !important;
+  color: #fff !important;
+}
+.dome-btn:hover { background: #1f6cc0 !important; border-color: #1f6cc0 !important; }
