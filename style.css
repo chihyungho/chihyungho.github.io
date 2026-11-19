@@ -1597,10 +1597,10 @@ footer {
 }
 .dome-btn:hover { background: #1f6cc0 !important; border-color: #1f6cc0 !important; }
 
-/* ===== 新竹政策島按鈕（實心青綠） ===== */
+/* ===== 新竹政策島按鈕（政見 02 的橘色） ===== */
 .island-btn {
-  background: #17a57a !important;
-  border: 1px solid #17a57a !important;
+  background: #f0902f !important;
+  border: 1px solid #f0902f !important;
   color: #fff !important;
 }
-.island-btn:hover { background: #128a65 !important; border-color: #128a65 !important; }
+.island-btn:hover { background: #d97a1c !important; border-color: #d97a1c !important; }

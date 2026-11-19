@@ -193,14 +193,14 @@
     g.userData.anim = function (dt, t) { star.position.y = .42 + Math.sin(t * 2.4) * .03; star.rotation.y = t * 2; };
   };
   // ---- 市場 ----
-  B.market = function (g) {
+  B.market = function (g, site) {
     var c = M('#efe6d2');
     box(g, c, .8, .18, .5, 0, 0, 0); var rf = cyl(g, M('#c96f4f'), .26, .8, 0, 0, 0, 14); rf.rotation.z = Math.PI / 2; rf.scale.set(.26, .8, .26); rf.position.set(0, .18, 0); rf.scale.x = .12;
     for (var i = 0; i < 8; i++) box(g, M(i % 2 ? '#d8414e' : '#ffffff'), .1, .02, .12, -.35 + i * .1, .14, .3).rotation.x = .35;
     var cs = ['#f4c542', '#4cb989', '#f0902f', '#5b8fd6'];
     for (i = 0; i < 4; i++) { box(g, M('#e3d6bd'), .1, .05, .08, -.3 + i * .2, 0, .46); box(g, M(cs[i]), .13, .015, .11, -.3 + i * .2, .1, .46); cyl(g, M('#8a6a4a'), .006, .1, -.3 + i * .2, 0, .46, 4); }
     // 未來：樓上新創基地
-    var up = fut(grp(g, 0, .3, 0), .25);
+    var up = fut(grp(g, 0, .3, 0), .25); if (site && site.id !== 'market') { up.userData.fut = 0; up.visible = false; } // 樓上新創基地只放在東門市場
     box(up, M('#dff1ff', { op: .85, em: '#bfe6ff', ei: .8 }), .5, .14, .34, 0, 0, 0); box(up, M('#d9a92e'), .54, .02, .38, 0, .14, 0);
     var bulb = sph(up, M('#ffe27a', { em: '#ffd34d', ei: 2.6, always: 1 }), .05, 0, .3, 0); cyl(up, M('#8a95a3'), .018, .04, 0, .22, 0, 6);
     g.userData.anim = function (dt, t) { bulb.scale.setScalar(.05 * (1 + Math.sin(t * 3) * .12)); };
@@ -426,6 +426,8 @@
   };
   B.bus = function (c) { var g = grp(); box(g, M(c || '#4cb989'), .2, .075, .075, 0, .015, 0); box(g, M('#12386b', { em: '#ffe9a8', ei: 1.6 }), .17, .028, .078, 0, .055, 0); box(g, M('#ffffff'), .202, .012, .077, 0, .032, 0); return g; };
   B.car = function (c) { var g = grp(); box(g, M(c), .075, .04, .04, 0, .006, 0); return g; };
+  B.scooter = function (c) { var g = grp(); box(g, M(c), .036, .014, .013, 0, .005, 0); box(g, M('#2a2f38'), .012, .02, .012, -.002, .018, 0); sph(g, M(c), .0085, -.002, .045, 0); return g; };
+  B.bike = function (c) { var g = grp(); box(g, M('#f4c542'), .034, .005, .004, 0, .012, 0); box(g, M('#2a2f38'), .008, .014, .003, .014, 0, 0); box(g, M('#2a2f38'), .008, .014, .003, -.014, 0, 0); box(g, M(c), .01, .02, .01, -.002, .016, 0); sph(g, M('#ffd9b0'), .007, 0, .043, 0); return g; };
   B.gondola = function () { var g = grp(); box(g, M('#f0902f'), .1, .085, .075, 0, -.12, 0); box(g, M('#dff1ff', { em: '#fff2c0', ei: 1.6 }), .102, .035, .06, 0, -.085, 0); box(g, M('#5a626e'), .008, .08, .008, 0, -.04, 0); return g; };
   B.turbine = function () {
     var g = grp(); cyl(g, M('#f6f8fb'), .03, 1.1, 0, 0, 0, 8, .5); box(g, M('#f6f8fb'), .12, .06, .06, .02, 1.1, 0);

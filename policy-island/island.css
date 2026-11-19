@@ -371,3 +371,10 @@ body.riding #labels .lb-site, body.riding #labels .lb-place, body.riding #labels
 .btn-ride[data-ride="brt"] { background: linear-gradient(90deg, #2fcf9a, #17a57a); }
 .lb-ride { background: #7df0c8; }
 .lb-ride.sky { background: #f7a53a; color: #3a1c00; }
+
+/* ---- v26：BRT 視角不顯示駕駛座 ---- */
+body[data-ride="brt"] .rv-bus { display: none; }
+
+/* ---- v32：開場主按鈕 ---- */
+.go-main { display: flex; align-items: center; gap: 10px; }
+.go-no { font-style: normal; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: #d8414e; border: 3px solid #fff; box-shadow: inset 0 0 0 2.5px #d8414e; display: grid; place-items: center; font-weight: 900; font-size: 18px; line-height: 1; }

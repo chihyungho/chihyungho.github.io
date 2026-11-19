@@ -32,7 +32,22 @@
 
   // ================= 散佈：房屋與樹 =================
   function stationKm(name) { for (var i = 0; i < G.stations.length; i++) if (G.stations[i].name === name) return G.stations[i].p; return null; }
-  D.sites.forEach(function (s) { s.kmPos = s.km || (s.st && stationKm(s.st)) || ISL.ll(s.ll[0], s.ll[1]); });
+  var TRAFFIC = ['gongdao5', 'jingguo', 'zhonghua', 'guangfu', 'ciyun', 'dongda'].map(function (k) { return G.roads[k] || []; }).concat([G.railMain || [], G.railBranch || []]);
+  D.sites.forEach(function (s) {
+    var k0 = s.km || (s.st && stationKm(s.st)) || ISL.ll(s.ll[0], s.ll[1]), p = [k0[0], k0[1]]; s.kmRaw = k0;
+    if (s.id === 'station') p = [k0[0] + .14, k0[1] - .14]; // 站體退到軌道與中華路的後方
+    else if (!{ wetland: 1, harbor: 1, lake: 1, peak: 1 }[s.type]) {
+      var c = s.id === 'brt' ? .17 : s.id === 'aisignal' ? .11 : (.36 * s.s * 1.32 + .14) / S;
+      for (var it = 0; it < 10; it++) TRAFFIC.forEach(function (arr) {
+        for (var i = 0; i < arr.length - 1; i++) {
+          var ax = arr[i][0], ay = arr[i][1], dx = arr[i + 1][0] - ax, dy = arr[i + 1][1] - ay, L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((p[0] - ax) * dx + (p[1] - ay) * dy) / L2));
+          var qx = ax + t * dx, qy = ay + t * dy, d = Math.hypot(p[0] - qx, p[1] - qy);
+          if (d < c) { var nx = d > 1e-4 ? (p[0] - qx) / d : -dy / Math.sqrt(L2), ny = d > 1e-4 ? (p[1] - qy) / d : dx / Math.sqrt(L2); p[0] = qx + nx * (c + .005); p[1] = qy + ny * (c + .005); }
+        }
+      });
+    }
+    s.kmPos = p;
+  });
   function nearSite(x, y) { for (var i = 0; i < D.sites.length; i++) { var s = D.sites[i], r = (s.type === 'wetland' ? .25 : .62) * s.s * 1.25 / S; if (Math.abs(x - s.kmPos[0]) < r && Math.abs(y - s.kmPos[1]) < r && Math.hypot(x - s.kmPos[0], y - s.kmPos[1]) < r) return true; } return false; }
   function nearBrt(x, y) {
     var ks = ['gongdao5', 'jingguo', 'zhonghua'];
@@ -148,16 +163,28 @@
     pts.push(sSt + .6 * S * (sN > sSt ? 1 : -1) * .9);
     pts.forEach(function (s) { var c = B.crossing(), p = rail.at(s), d = rail.dir(s); c.position.copy(p); c.rotation.y = Math.atan2(-d.z, d.x) + Math.PI / 2; c.scale.setScalar(1.5); c.userData.pre = 1; scene.add(c); ISL.regPhase(c); });
   })();
+  // 所有會動的車都登記在 veh：同路同向保持車距、不同路在路口禮讓（火車 > BRT > 汽車），避免互相穿過
+  var veh = [];
+  function blocked(me, look) {
+    for (var i = 0; i < veh.length; i++) {
+      var o = veh[i]; if (o === me || !o.on) continue;
+      if (o.road === me.road) { if (o.dir === me.dir && o.kind === me.kind) { var ds = (o.s - me.s) * me.dir; if (ds > 0 && ds < me.gap) return true; } continue; }
+      if (o.pri >= me.pri) continue;
+      var dl = Math.hypot(o.pos.x - look.x, o.pos.z - look.z), dc = Math.hypot(o.pos.x - me.pos.x, o.pos.z - me.pos.z);
+      if (dl < me.rad && dc > .07 && dl < dc) return true;
+    }
+    return false;
+  }
   function makeTrain(path, n, speed, dirSign, phase) {
-    var cars = []; for (var i = 0; i < n; i++) { var c = B.trainCar(i === 0); c.scale.setScalar(.82); c.traverse(function (o) { if (o.isMesh) o.castShadow = true; }); scene.add(c); cars.push(c); }
-    var gap = .265, L = path.total + n * gap + 1;
+    var cars = [], regs = []; for (var i = 0; i < n; i++) { var c = B.trainCar(i === 0); c.scale.setScalar(.82); c.traverse(function (o) { if (o.isMesh) o.castShadow = true; }); scene.add(c); cars.push(c); var rg = { o: c, pos: c.position, kind: 'train', road: 'rail', pri: -1, on: false, s: 0, dir: dirSign }; veh.push(rg); regs.push(rg); }
+    var gap = .265, L = path.total + n * gap + 1, lat = path === rail ? -dirSign * .034 : 0;
     return function (dt, t) {
       var head = ((t * speed + phase * L) % L);
       for (var i = 0; i < cars.length; i++) {
         var s = head - i * gap; if (dirSign < 0) s = path.total - s;
-        var c = cars[i], inr = s > 0 && s < path.total; c.visible = inr; if (!inr) continue;
+        var c = cars[i], inr = s > 0 && s < path.total; c.visible = inr; regs[i].on = false; if (!inr) continue;
         path.at(s, tmpV); path.dir(s, tmpD); var lift = path === rail ? VH * vProf(s) * env.future : 0;
-        c.position.set(tmpV.x, tmpV.y + lift, tmpV.z); c.rotation.y = Math.atan2(-tmpD.z, tmpD.x) + (dirSign < 0 ? Math.PI : 0);
+        c.position.set(tmpV.x - tmpD.z * lat, tmpV.y + lift, tmpV.z + tmpD.x * lat); c.rotation.y = Math.atan2(-tmpD.z, tmpD.x) + (dirSign < 0 ? Math.PI : 0); regs[i].on = lift < .08; regs[i].s = s;
         var e = Math.min(s, path.total - s); c.scale.setScalar(.82 * ISL.smooth(e / .5));
       }
     };
@@ -186,7 +213,7 @@
   ['gongdao5', 'jingguo', 'zhonghua', 'guangfu', 'ciyun', 'dongda'].forEach(function (k) { if (G.roads[k] && G.roads[k].length > 1) roadPaths[k] = ISL.pathFromKm(G.roads[k], .012, .06); });
   ['gongdao5', 'jingguo', 'zhonghua'].forEach(function (k, ri) {
     var p = roadPaths[k]; if (!p) return;
-    brtMats.push(ribbon(p, .3, '#4b5361', .008)); brtMats.push(ribbon(p, .1, '#19e0a0', .016));
+    brtMats.push(ribbon(p, .3, '#4b5361', .008)); brtMats.push(ribbon(p, .17, '#19e0a0', .016));
     (function () { // 行道樹
       var pts = [], q = new THREE.Vector3(), dv = new THREE.Vector3();
       for (var ts = .3; ts < p.total - .3; ts += .3) { p.at(ts, q); p.dir(ts, dv); for (var sd = -1; sd <= 1; sd += 2) pts.push([q.x - dv.z * .2 * sd, q.y, q.z + dv.x * .2 * sd]); }
@@ -199,30 +226,53 @@
       var b = B.bus(['#2fbf8f', '#27a8d8', '#34c36f'][ri]); b.scale.setScalar(.8); b.traverse(function (o) { if (o.isMesh) o.castShadow = true; }); scene.add(b); buses.push(b); b.userData.site = 'brt'; ISL.pickables.push(b);
       var dir = i % 2 ? -1 : 1, ph = i / nb;
       if (i === 0) { var rn = { gongdao5: '公道五路', jingguo: '經國路', zhonghua: '中華路' }[k]; rides.brt.push({ o: b, p: p, name: 'BRT・' + rn, sub: '公車專用道，一路綠燈優先', stops: stopsFor(p) }); rideLabel(b, '🚌 BRT・' + rn, 'brt'); }
+      var me = { o: b, pos: b.position, kind: 'bus', road: k, pri: ri, on: false, s: 0, dir: dir, gap: .5, rad: .26 }, acc = ph * p.total, lane = dir * .036; veh.push(me); b.userData.lane = lane;
       anims.push(function (dt, t) {
-        var f = env.future; b.visible = f > .04; if (!b.visible) return;
-        var s = ((t * .5 + ph * p.total) % p.total); if (dir < 0) s = p.total - s; b.userData.rs = s; b.userData.rd = dir;
-        p.at(s, tmpV); p.dir(s, tmpD); b.position.set(tmpV.x, tmpV.y + .012, tmpV.z); b.rotation.y = Math.atan2(-tmpD.z, tmpD.x) + (dir < 0 ? Math.PI : 0);
+        var f = env.future; b.visible = f > .04; me.on = b.visible; if (!b.visible) return;
+        var s = acc % p.total; if (dir < 0) s = p.total - s; me.s = s; b.userData.rs = s; b.userData.rd = dir;
+        p.at(s, tmpV); p.dir(s, tmpD); b.position.set(tmpV.x - tmpD.z * lane, tmpV.y + .012, tmpV.z + tmpD.x * lane); b.rotation.y = Math.atan2(-tmpD.z, tmpD.x) + (dir < 0 ? Math.PI : 0);
         b.scale.setScalar(.8 * f * ISL.smooth(Math.min(s, p.total - s) / .4));
+        p.at(ISL.clamp(s + dir * .24, 0, p.total), tmpV); if (!blocked(me, tmpV)) acc += dt * .68;
       });
     })(i);
   });
   // 一般車流：現在慢（塞車）、未來順
   ['guangfu', 'ciyun', 'dongda', 'jingguo'].forEach(function (k, ri) {
-    var p = roadPaths[k]; if (!p) return; var n = Math.round(p.total * 1.6), cs = ['#d8414e', '#f6f8fb', '#5b8fd6', '#f4c542', '#2a2f38', '#e9e2d6'];
+    var p = roadPaths[k]; if (!p) return; var n = Math.round(p.total * 1.3), nd = Math.ceil(n / 2), cs = ['#d8414e', '#f6f8fb', '#5b8fd6', '#f4c542', '#2a2f38', '#e9e2d6'];
     for (var i = 0; i < n; i++) (function (i) {
-      var c = B.car(cs[(Math.random() * cs.length) | 0]); scene.add(c); var dir = i % 2 ? -1 : 1, off = Math.random() * p.total, sp = .5 + Math.random() * .3, acc = off, side = dir * .028;
+      var c = B.car(cs[(Math.random() * cs.length) | 0]); scene.add(c); var dir = i % 2 ? -1 : 1, acc = ((i >> 1) + .15 + Math.random() * .5) / nd * p.total, side = dir * .095;
+      var me = { o: c, pos: c.position, kind: 'car', road: k, pri: 10 + ri, on: true, s: 0, dir: dir, gap: .17, rad: .2 }; veh.push(me);
       anims.push(function (dt) {
-        acc += dt * sp * ISL.lerp(.13, 1, env.future); var s = acc % p.total; if (dir < 0) s = p.total - s;
+        var s = acc % p.total; if (dir < 0) s = p.total - s; me.s = s;
         p.at(s, tmpV); p.dir(s, tmpD); c.position.set(tmpV.x - tmpD.z * side, tmpV.y + .004, tmpV.z + tmpD.x * side); c.rotation.y = Math.atan2(-tmpD.z, tmpD.x) + (dir < 0 ? Math.PI : 0);
         c.scale.setScalar(.75 * ISL.smooth(Math.min(s, p.total - s) / .3));
+        p.at(ISL.clamp(s + dir * .16, 0, p.total), tmpV); if (!blocked(me, tmpV)) acc += dt * .6 * ISL.lerp(.13, 1, env.future);
       });
     })(i);
   });
 
+  // 機車（外側車道）與腳踏車（路邊、沿海自行車道）：同樣保持車距並在路口禮讓
+  if (G.roads.t61 && G.roads.t61.length > 1) roadPaths.t61 = ISL.pathFromKm(G.roads.t61, .012, .06);
+  function addRiders(kind, k, n, sideAbs, speed, pri, make) {
+    var p = roadPaths[k]; if (!p || n < 1) return; var nd = Math.ceil(n / 2);
+    for (var i = 0; i < n; i++) (function (i) {
+      var c = make(); c.scale.setScalar(.85); scene.add(c); var dir = i % 2 ? -1 : 1, acc = ((i >> 1) + .1 + Math.random() * .6) / nd * p.total, side = dir * sideAbs;
+      var me = { o: c, pos: c.position, kind: kind, road: k, pri: pri, on: true, s: 0, dir: dir, gap: .1, rad: .17 }; veh.push(me);
+      anims.push(function (dt, t) {
+        var s = acc % p.total; if (dir < 0) s = p.total - s; me.s = s;
+        p.at(s, tmpV); p.dir(s, tmpD); c.position.set(tmpV.x - tmpD.z * side, tmpV.y + .004, tmpV.z + tmpD.x * side); c.rotation.y = Math.atan2(-tmpD.z, tmpD.x) + (dir < 0 ? Math.PI : 0);
+        c.scale.setScalar(.85 * ISL.smooth(Math.min(s, p.total - s) / .3));
+        p.at(ISL.clamp(s + dir * .13, 0, p.total), tmpV); if (!blocked(me, tmpV)) acc += dt * (kind === 'moto' ? speed * ISL.lerp(.4, 1, env.future) : speed);
+      });
+    })(i);
+  }
+  var motoC = ['#d8414e', '#2b7fd4', '#f6f8fb', '#2a2f38', '#f0902f', '#4cb989'], shirtC = ['#5b8fd6', '#f0977f', '#4cb989', '#ffffff', '#9b8bc4'];
+  ['guangfu', 'ciyun', 'dongda', 'jingguo', 'gongdao5', 'zhonghua'].forEach(function (k, ri) { if (roadPaths[k]) addRiders('moto', k, Math.round(roadPaths[k].total * (ISL.isMobile ? .5 : .9)), .125, .7, 20 + ri, function () { return B.scooter(motoC[(Math.random() * motoC.length) | 0]); }); });
+  ['guangfu', 'dongda', 'jingguo', 't61'].forEach(function (k, ri) { if (roadPaths[k]) addRiders('bike', k, Math.round(roadPaths[k].total * (k === 't61' ? .7 : .45)), k === 't61' ? .07 : .155, .2, 30 + ri, function () { return B.bike(shirtC[(Math.random() * shirtC.length) | 0]); }); });
+
   // ================= 智慧空軌（纜車） =================
   var sky = new THREE.Group(), skyTowers = [], skyLines = [], gondolas = [];
-  function skyPath(ids) { return ISL.pathFromKm(ids.map(function (id) { return SM[id].kmPos; }), .62, .12); }
+  function skyPath(ids) { return ISL.pathFromKm(ids.map(function (id) { var k = SM[id].kmPos; return id === 'station' ? SM[id].kmRaw : id === 'scipark' ? [k[0] - .42, k[1] + .36] : k; }), .62, .12); }
   [skyPath(D.skyrail.main), skyPath(D.skyrail.branch)].forEach(function (p, pi) {
     var lg = new THREE.BufferGeometry().setFromPoints(p.p), lm = new THREE.LineBasicMaterial({ color: ISL.col('#3a4250'), transparent: true, opacity: 0 });
     sky.add(new THREE.Line(lg, lm)); skyLines.push(lm); var tb = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(p.p.filter(function (v, i) { return i % 3 === 0 || i === p.p.length - 1; })), 160, .016, 5), M('#f0902f', { em: '#ff9a3a', ei: 1.2 })); tb.castShadow = true; tb.userData.site = 'peak'; ISL.pickables.push(tb); sky.add(tb);
@@ -231,9 +281,12 @@
     for (var i = 0; i < n; i++) (function (i) {
       var gd = B.gondola(); gd.traverse(function (o) { if (o.isMesh) o.castShadow = true; }); sky.add(gd); gondolas.push(gd); gd.userData.site = 'peak'; ISL.pickables.push(gd);
       if (i === 0) { rides.sky.push({ o: gd, p: p, name: pi === 0 ? '空軌纜車・舊城 ⇄ 十八尖山 ⇄ 清交 ⇄ 竹科' : '空軌纜車・十八尖山 ⇄ 青草湖', sub: '從空中看新竹，通勤也是觀光', stops: (pi === 0 ? D.skyrail.main : D.skyrail.branch).map(function (id) { return { s: p.nearest(siteObjs[id].pos), name: SM[id].name }; }) }); rideLabel(gd, pi === 0 ? '🚡 空軌纜車' : '🚡 纜車・往青草湖', 'peak'); }
+      var lat = 0;
       anims.push(function (dt, t) {
-        if (env.future < .05) return; var u = ((t * .55 + i / n * 2 * p.total) % (2 * p.total)), s = u > p.total ? 2 * p.total - u : u; gd.userData.rs = s; gd.userData.rd = u > p.total ? -1 : 1;
-        p.at(s, tmpV); p.dir(s, tmpD); gd.position.copy(tmpV); gd.rotation.y = Math.atan2(-tmpD.z, tmpD.x); gd.rotation.z = Math.sin(t * 2 + i) * .06; gd.scale.setScalar(.85 * env.future);
+        if (env.future < .05) return; var u = ((t * .3 + i / n * 2 * p.total) % (2 * p.total)), s = u > p.total ? 2 * p.total - u : u, rdv = u > p.total ? -1 : 1; gd.userData.rs = s; gd.userData.rd = rdv;
+        lat += (rdv * .07 - lat) * Math.min(1, dt * 3); gd.userData.lat = lat;
+        p.at(s, tmpV); p.dir(s, tmpD); gd.position.set(tmpV.x - tmpD.z * lat, tmpV.y, tmpV.z + tmpD.x * lat); gd.rotation.y = Math.atan2(-tmpD.z, tmpD.x); gd.rotation.z = Math.sin(t * 2 + i) * .06;
+        var mine = state.ride && state.ride.type === 'sky' && rides.sky[state.ride.i].o === gd; gd.scale.setScalar(mine ? .001 : .85 * env.future);
       });
     })(i);
   });
@@ -346,11 +399,12 @@
     for (var ri = 0; ri < rideLabels.length; ri++) { var rl = rideLabels[ri]; rl.lp.copy(rl.o.position); rl.lp.y += .2; }
     if (state.ride) { // 第一人稱：坐在車裡往前看
       var R = state.ride, rr = rides[R.type][R.i], isB = R.type === 'brt', P = rr.p;
-      R.s += R.dir * dt * (isB ? .2 : .15);
-      if (R.s > P.total - .15) { R.s = P.total - .15; R.dir = -1; toast('終點站到了，折返', 1800); } else if (R.s < .15) { R.s = .15; R.dir = 1; toast('終點站到了，折返', 1800); }
-      P.at(R.s, ridePos); P.at(ISL.clamp(R.s + R.dir * (isB ? 1.0 : 1.5), 0, P.total), rideLookAt);
-      if (isB) { ridePos.y += .068 + Math.sin(t * 21) * .0012; rideLookAt.y += .05; rideCamObj.roll = Math.sin(t * 1.7) * .004; }
-      else { P.dir(R.s, tmpD); ridePos.x -= tmpD.z * .085; ridePos.z += tmpD.x * .085; ridePos.y -= .1 + Math.sin(t * 1.1) * .012; rideLookAt.y -= .5; rideCamObj.roll = Math.sin(t * 1.1) * .035; }
+      R.s = rr.o.userData.rs || 0; R.dir = rr.o.userData.rd || 1;
+      P.at(ISL.clamp(R.s - (isB ? R.dir * .5 : 0), 0, P.total), ridePos); P.at(ISL.clamp(R.s + R.dir * (isB ? 1.8 : 1.5), 0, P.total), rideLookAt);
+      P.dir(R.s, tmpD); var ln = isB ? (rr.o.userData.lane || 0) : (rr.o.userData.lat || 0);
+      ridePos.x -= tmpD.z * ln; ridePos.z += tmpD.x * ln; rideLookAt.x -= tmpD.z * ln; rideLookAt.z += tmpD.x * ln;
+      if (isB) { ridePos.y += .2; rideLookAt.y += .05; rideCamObj.roll = 0; }
+      else { ridePos.y -= .1 + Math.sin(t * 1.1) * .012; rideLookAt.y -= .5; rideCamObj.roll = Math.sin(t * 1.1) * .03; }
       ISL.rideCam = rideCamObj; cam.g.t.set(ridePos.x, .3, ridePos.z); cam.t.copy(cam.g.t); cam.dist = cam.g.dist = 13;
       R.hud = (R.hud || 0) + dt;
       if (R.hud > .4) { R.hud = 0; var nx = null, bd = 1e9; for (var si = 0; si < rr.stops.length; si++) { var dd = (rr.stops[si].s - R.s) * R.dir; if (dd > .05 && dd < bd) { bd = dd; nx = rr.stops[si]; } } var txt = nx ? '下一站 ▶ ' + nx.name : '即將抵達終點站'; $('#rideSub').textContent = txt; $('#rvLed').textContent = rr.name.replace('・', ' ') + '｜' + txt; }
@@ -532,7 +586,7 @@
     if (!rides[type].length) return; if (state.tour) stopTour(); closeIntro(); if (state.seq) { state.seq.forEach(clearTimeout); state.seq = null; }
     state.policy = null; state.site = null; state.persona = null; setHighlight({}); clearArcs(); closePanel(); renderRail(); ensureFuture();
     state.ride = { type: type, i: (i || 0) % rides[type].length, s: .2, dir: 1 }; document.body.classList.add('riding'); document.body.setAttribute('data-ride', type); scene.fog.near = 5; scene.fog.far = 75; rideUI();
-    toast(type === 'brt' ? '你現在坐在 BRT 第一排，出發！' : '你現在坐在空軌纜車車廂裡，出發！', 3600);
+    toast(type === 'brt' ? '跟著 BRT 看新竹，出發！' : '你現在坐在空軌纜車車廂裡，出發！', 3600);
   }
   function stopRide(quiet) { if (!state.ride) return; state.ride = null; ISL.rideCam = null; document.body.classList.remove('riding'); scene.fog.near = 70; scene.fog.far = 210; if (!quiet) ISL.flyTo({ dist: 14, pol: 1.0, speed: 2.4 }); }
   $('#btnRideBrt').addEventListener('click', function () { startRide('brt', 0); });
