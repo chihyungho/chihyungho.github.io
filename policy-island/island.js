@@ -322,10 +322,11 @@
     kite.position.lerp(kiteGoal, 1 - Math.exp(-dt * 1.4));
     // 投影到畫面，並避開頂列、政見列、政見卡與畫面邊緣
     msV.copy(kite.position).project(ISL.camera);
-    var W_ = window.innerWidth, H_ = window.innerHeight, mob = W_ <= 860, U = mob ? 78 : 112, open = document.body.classList.contains('panel-open');
+    var W_ = window.innerWidth, H_ = window.innerHeight, mob = W_ <= 860, introOn = !document.body.classList.contains('started'), U = introOn ? (mob ? 104 : 158) : mob ? 78 : 112, open = document.body.classList.contains('panel-open');
     var show = msV.z < 1 && !state.ride, tx = (msV.x * .5 + .5) * W_, ty = (-msV.y * .5 + .5) * H_;
     tx = ISL.clamp(tx, (mob ? 8 : 268) + .5 * U, W_ - (open && !mob ? 430 : mob ? 52 : 76) - .6 * U);
     ty = ISL.clamp(ty, (mob ? 150 : 84) + .7 * U, H_ - (open && mob ? H_ * .56 : mob ? 96 : 60) - .85 * U);
+    if (introOn) { show = true; tx = W_ * (mob ? .72 : .66) + Math.sin(t * .5) * (mob ? 14 : 40); ty = H_ * (mob ? .2 : .22) + Math.cos(t * .7) * (mob ? 8 : 16); } // 開場畫面：在島的上空飄
     if (msX < -900) { msX = tx; msY = ty; } msX += (tx - msX) * Math.min(1, dt * 8); msY += (ty - msY) * Math.min(1, dt * 8);
     mascot.style.setProperty('--u', U + 'px'); mascot.style.opacity = show ? 1 : 0;
     mascot.style.transform = 'translate3d(' + msX.toFixed(1) + 'px,' + (msY + Math.sin(t * 1.8) * 4).toFixed(1) + 'px,0) rotate(' + (Math.sin(t * 1.3) * 3).toFixed(2) + 'deg)';

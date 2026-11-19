@@ -378,3 +378,6 @@ body[data-ride="brt"] .rv-bus { display: none; }
 /* ---- v32：開場主按鈕 ---- */
 .go-main { display: flex; align-items: center; gap: 10px; }
 .go-no { font-style: normal; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: #d8414e; border: 3px solid #fff; box-shadow: inset 0 0 0 2.5px #d8414e; display: grid; place-items: center; font-weight: 900; font-size: 18px; line-height: 1; }
+
+/* ---- v33：開場畫面也有飄著的 Q 版何志勇 ---- */
+body:not(.started) #mascot { visibility: visible; z-index: 21; }
