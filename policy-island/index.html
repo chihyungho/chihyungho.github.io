@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>新竹政策島｜何志勇 2026 新竹市長參選人</title>
+  <meta name="description" content="用真實地形與道路做出來的 3D 新竹：16,800 市民生活支持金＋何志勇九大政見，全部放在它會發生的地方。智慧巨蛋、鐵路高架、智慧空軌、南寮加州海岸，一次看懂。">
+  <meta name="keywords" content="何志勇, 新竹政策島, 新竹市長, 九大政見, 16800, 智慧巨蛋, 鐵路高架, 亞洲波士頓, 新竹再勇敢一次">
+  <link rel="canonical" href="https://chihyungho.github.io/policy-island/">
+  <link rel="icon" type="image/jpeg" href="../images/CYH.jpg">
+  <meta name="theme-color" content="#0c2447">
+  <meta property="og:title" content="新竹政策島｜何志勇的新竹，一次看懂">
+  <meta property="og:description" content="用真實地形做出來的 3D 新竹。16,800 生活支持金＋九大政見，全部放在它會發生的地方。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://chihyungho.github.io/policy-island/">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:image" content="https://chihyungho.github.io/images/CYH.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="island.css?v=25">
+</head>
+<body>
+<canvas id="scene" aria-label="新竹政策島 3D 地圖"></canvas>
+<div id="labels" aria-hidden="true"></div>
+
+<header id="topbar">
+  <a class="brand" href="../" title="回何志勇官方網站"><span class="brand-back">←</span><span class="brand-no">2</span><span class="brand-t"><b>何志勇</b><em>新竹政策島</em></span></a>
+  <div id="searchWrap">
+    <input id="search" type="search" autocomplete="off" placeholder="搜尋政見：巨蛋、公幼、租屋、塞車…" aria-label="搜尋政見">
+    <div id="searchRes" role="listbox"></div>
+  </div>
+  <button type="button" id="coinHud" title="看 16,800 生活支持金"><span class="ch-c">$</span><span class="ch-t">每人每天 <b>70</b> 元<i>→</i>一年 <b id="coinNum">16,800</b> 元</span><em>連發四年</em></button>
+  <div class="top-actions">
+    <div id="personaWrap"><button type="button" id="btnPersona" class="tb" aria-label="我是…（依身分看政見）">🙋<span class="tx"> 我是…</span></button><div id="personaMenu"></div></div>
+    <button type="button" id="btnTour" class="tb" aria-label="自動導覽"><span class="tour-off">▶<span class="tx"> 導覽</span></span><span class="tour-on">■<span class="tx"> 結束導覽</span></span></button>
+    <button type="button" id="btnNight" class="tb icon" aria-label="切換白天／夜晚" title="白天／夜晚">🌙</button>
+    <button type="button" id="btnPhase" class="phase" aria-pressed="false" title="切換 現在／未來"><span class="ph-a">現在</span><span class="ph-sw"><i></i></span><span class="ph-b">未來</span></button>
+  </div>
+</header>
+<div id="phaseTag"><span id="phaseLbl">現在的新竹</span></div>
+
+<nav id="railWrap" aria-label="政見列表">
+  <div class="rail-head"><span>已探索 <b id="progNum">0</b> / 10</span><div class="prog"><i id="progBar"></i></div></div>
+  <div id="rail"></div>
+  <button type="button" id="btnVote">11/28 票投 <span>2</span> 號</button>
+</nav>
+
+<aside id="panel" aria-hidden="true">
+  <button type="button" id="panelClose" aria-label="關閉">×</button>
+  <div id="panelBody"></div>
+</aside>
+
+<div id="ctrl">
+  <button type="button" id="btnRideBrt" class="ride" title="坐上 BRT，用乘客視角看新竹"><span>🚌</span> BRT 視角看新竹</button>
+  <button type="button" id="btnRideSky" class="ride" title="坐上空軌纜車，從空中看新竹"><span>🚡</span> 纜車視角看新竹</button>
+  <button type="button" id="btnZin" aria-label="放大" title="放大">＋</button>
+  <button type="button" id="btnZout" aria-label="縮小" title="縮小">－</button>
+  <button type="button" id="btnRl" aria-label="向左旋轉" title="向左旋轉" class="dk">⟲</button>
+  <button type="button" id="btnRr" aria-label="向右旋轉" title="向右旋轉" class="dk">⟳</button>
+  <button type="button" id="btnTilt" aria-label="切換俯視角度" title="俯視／斜視">◩</button>
+  <button type="button" id="btnHome" aria-label="回到全島" title="回到全島">⌂</button>
+  <button type="button" id="btnText" aria-label="文字版政見" title="文字版政見">☰</button>
+</div>
+
+<button type="button" id="toFuture">✨ 看何志勇怎麼改變這一切<span>切換到未來 →</span></button>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="rideView" aria-hidden="true">
+  <div class="rv-bus"><i class="rv-top"></i><i class="rv-pl"></i><i class="rv-pr"></i><i class="rv-mirror"></i><div class="rv-dash"><span class="rv-wheel"></span><span class="rv-led" id="rvLed"></span><span class="rv-gauge"></span></div></div>
+  <div class="rv-sky"><i class="rv-glass"></i><i class="rv-frame"></i><i class="rv-hang"></i><i class="rv-rail"></i><i class="rv-ledge"></i></div>
+</div>
+<div id="rideBar">
+  <span id="rideIcon">🚌</span>
+  <div class="tour-txt"><b id="rideTitle"></b><em id="rideSub"></em></div>
+  <button type="button" id="rideNext">換一條路線</button>
+  <button type="button" id="rideSwap">🚡 改搭纜車</button>
+  <button type="button" id="rideExit" aria-label="離開搭乘視角">✕ 離開</button>
+</div>
+
+<div id="tour">
+  <div class="tour-prog"><i id="tourProg"></i></div>
+  <span id="tourNo">01</span>
+  <div class="tour-txt"><b id="tourTitle"></b><em id="tourHook"></em></div>
+  <span id="tourIdx"></span>
+  <button type="button" id="tourOpen" class="tour-more">看完整內容</button>
+  <button type="button" id="tourPrev" aria-label="上一站">◀</button>
+  <button type="button" id="tourPause" aria-label="暫停／繼續">❚❚</button>
+  <button type="button" id="tourNext" aria-label="下一站">▶</button>
+  <button type="button" id="tourExit" aria-label="結束導覽">✕</button>
+</div>
+
+<section id="intro">
+  <div class="intro-card">
+    <div class="intro-badge"><span>2</span>何志勇｜2026 新竹市長參選人</div>
+    <h1>新竹<br>政策島</h1>
+    <p class="intro-en">HSINCHU POLICY ISLAND</p>
+    <p class="intro-lead">這不是想像出來的島。<br>這是用<b>真實的地形、道路與海岸</b>做出來的新竹——<br><b>16,800 生活支持金</b>加上<b>九大政見</b>，全部放在它會發生的地方。</p>
+    <div class="intro-btns">
+      <button type="button" id="introGo" class="btn-go">🚀 開始探索<small>看何志勇的新竹，從地面長出來</small></button>
+      <button type="button" id="introTour" class="btn-ghost">▶ 帶我導覽 10 站</button>
+      <button type="button" id="introNow" class="btn-ghost">對照現在的新竹</button>
+    </div>
+    <p class="intro-tip"><span class="tip-d">拖曳移動・滾輪縮放・右鍵拖曳旋轉・點地標看政見</span><span class="tip-m">單指移動・雙指縮放與旋轉・點地標看政見</span></p>
+    <p class="intro-slogan">新竹再勇敢一次</p>
+  </div>
+</section>
+
+<section id="finale" role="dialog" aria-modal="true" aria-label="票投 2 號 何志勇">
+  <div id="confetti" aria-hidden="true"></div>
+  <div class="fin-card">
+    <button type="button" id="finaleClose" aria-label="關閉">×</button>
+    <img class="fin-photo" id="finPhoto" data-src="../images/hero-ho.jpg" alt="11 月 28 日，票投 2 號 何志勇" width="1280" height="1280">
+    <div class="fin-body">
+    <p class="fin-top">謝謝你，認真看完新竹的未來</p>
+    <div class="fin-date">11 月 28 日</div>
+    <div class="fin-vote">票投 <span>2</span> 號 <b>何志勇</b></div>
+    <p class="fin-slogan">新竹再勇敢一次・勇為新竹好</p>
+    <p class="fin-txt">一座城市的改變，從你手上那一票開始。<br>把這座島傳給你的家人、同事與鄰居。</p>
+    <div class="fin-share">
+      <a id="shLine" class="sh line" target="_blank" rel="noreferrer">LINE 分享</a>
+      <a id="shFb" class="sh fb" target="_blank" rel="noreferrer">Facebook 分享</a>
+      <button type="button" id="shCopy" class="sh copy">🔗 複製連結</button>
+    </div>
+    <div class="fin-links"><a href="../">回何志勇官方網站</a><a href="../hsinchu-whitepaper.pdf" target="_blank" rel="noreferrer">市政白皮書</a><a href="../smart-dome/" target="_blank" rel="noreferrer">智慧巨蛋 3D</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="textlist" aria-label="文字版政見">
+  <div class="tl-wrap">
+    <button type="button" id="textClose" aria-label="關閉文字版">× 回到政策島</button>
+    <h2>何志勇｜16,800 生活支持金＋九大政見</h2>
+    <p class="tl-note nowebgl-only">你的瀏覽器無法顯示 3D 畫面，以下是完整的文字版政見。</p>
+    <div id="textlistBody"></div>
+    <p class="tl-foot"><a href="../">回何志勇官方網站</a>　<a href="../hsinchu-whitepaper.pdf" target="_blank" rel="noreferrer">下載市政白皮書 PDF</a></p>
+  </div>
+</section>
+
+<div id="loader"><div class="ld-in"><div class="ld-ring"></div><b>新竹政策島</b><span>正在把新竹搬上來…</span></div></div>
+<footer id="credit">模型為政策示意，非實際規劃｜地圖資料 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors</footer>
+<noscript><p style="position:fixed;inset:0;display:grid;place-items:center;background:#0c2447;color:#fff;padding:24px;text-align:center;z-index:99">請開啟 JavaScript 以瀏覽新竹政策島，或前往 <a href="../" style="color:#8fd4ff">何志勇官方網站</a> 閱讀九大政見。</p></noscript>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="assets/geo.js?v=3"></script>
+<script src="data.js?v=25"></script>
+<script src="engine.js?v=25"></script>
+<script src="models.js?v=25"></script>
+<script src="island.js?v=25"></script>
+</body>
+</html>
